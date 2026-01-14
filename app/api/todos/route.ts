@@ -1,19 +1,18 @@
-// src/app/api/todos/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { todos } from '@/lib/db/schema';
 import { createPermissionChecker } from '@/lib/permissions';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 /**
  * GET /api/todos
- * List todos based on user role (ABAC filtering)
+ * List todos based on user role
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get session from Better Auth
     const session = await auth.api.getSession({
       headers: request.headers,
     });
@@ -28,10 +27,9 @@ export async function GET(request: NextRequest) {
       role: user.role as any,
     });
 
-    // Get filter based on role (ABAC!)
-    const filter = permissions.getListFilter();
     
-    // Query todos with filter
+    const filter = permissions.getListFilter();
+
     const userTodos = filter.userId
       ? await db.select().from(todos).where(eq(todos.userId, filter.userId))
       : await db.select().from(todos);
@@ -48,7 +46,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/todos
- * Create a new todo (only Users can create)
+ * Create a new todo 
  */
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
       role: user.role as any,
     });
 
-    // ABAC check: Can this user create todos?
+    // ABAC create check
     if (!permissions.canCreate()) {
       return NextResponse.json(
         { error: 'Forbidden: Only users can create todos' },
@@ -84,15 +82,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create todo
+    // Create todo with string dates
+    const now = new Date().toISOString();
     const newTodo = {
       id: nanoid(),
       title,
       description: description || '',
       status,
       userId: user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     await db.insert(todos).values(newTodo);

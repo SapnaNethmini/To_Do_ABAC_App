@@ -84,13 +84,10 @@ export class PermissionChecker {
     if (this.user.role === 'user') {
       return { userId: this.user.id };
     }
-    return {}; // No filter for manager/admin
+    return {}; 
   }
 }
 
-/**
- * Helper to create permission checker from user
- */
 export function createPermissionChecker(user: Pick<User, 'id' | 'role'>) {
   return new PermissionChecker(user);
 }
